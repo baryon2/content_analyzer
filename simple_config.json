@@ -1,0 +1,46 @@
+{
+  "categories": {
+    "profanity": {
+      "description": "Profanity and offensive language",
+      "patterns": [
+        "fuck", "fucking", "fucker", "shit", "damn", "hell", "bitch",
+        "asshole", "ass", "cunt", "dickhead", "bastard", "piss", "crap",
+        "motherfucker", "bloody", "bugger", "butt", "cum"
+      ]
+    },
+    "hate_speech": {
+      "description": "Hate speech and discriminatory language",
+      "patterns": [
+        "nigger", "nigga", "kike", "spic", "nazi", "heil hitler",
+        "white supremacy", "kkk", "faggot", "retard"
+      ]
+    },
+    "controversial_figures": {
+      "description": "References to controversial political figures",
+      "patterns": [
+        "hitler", "putin", "trump", "stalin", "mao zedong",
+        "saddam hussein", "osama"
+      ]
+    }
+  },
+  "file_extensions": [
+    ".js", ".ts", ".jsx", ".tsx", ".py", ".java", ".c", ".cpp", ".cs",
+    ".php", ".rb", ".go", ".rs", ".md", ".txt", ".html", ".htm", ".xml",
+    ".json", ".yaml", ".yml", ".sql", ".sh", ".bash", ".css", ".csv",
+    ".tsv", ".dat", ".log", ".config", ".conf", ".ini", ".properties"
+  ],
+  "exclude_dirs": [
+    ".git", "node_modules", "__pycache__", ".venv", "venv", "dist",
+    "build", "target", ".next", "coverage"
+  ],
+  "exclude_files": [
+    "*.min.js", "*.min.css", "package-lock.json", "yarn.lock", "*.log"
+  ],
+  "ignore_line_patterns": [
+    "^\\s*//.*",
+    "^\\s*/\\*.*\\*/",
+    "^\\s*#.*",
+    "integrity.*sha",
+    "resolved.*https"
+  ]
+}
