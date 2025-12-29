@@ -11,8 +11,9 @@ import argparse
 import re
 from pathlib import Path
 from typing import Dict, List, Any
+import csv
 
-def load_config(config_path='scripts/simple_config.json'):
+def load_config(config_path):
     """Load configuration from JSON file"""
     if not os.path.exists(config_path):
         print(f"Error: Configuration file not found at {config_path}")
@@ -25,7 +26,7 @@ def load_config(config_path='scripts/simple_config.json'):
         print(f"Error: Invalid JSON in configuration file: {e}")
         exit(1)
 
-def clone_repo(repo_url, repos_dir='repos/cloned'):
+def clone_repo(repo_url, repos_dir):
     """Clone repository if it doesn't exist"""
     repo_name = repo_url.split("/")[-1].replace(".git", "")
     repo_path = os.path.join(repos_dir, repo_name)
@@ -165,49 +166,86 @@ def scan_repository(repo_path: str, config: Dict[str, Any]) -> List[Dict[str, An
     print(f"  Found {len(findings)} total issues")
     return findings
 
+def convert_json_to_csv(json_file, csv_file, report):
+    """Converts a JSON report of problematic content to a CSV file."""
+    # Define CSV headers
+    fieldnames = ["repository", "file_path", "line_number", "category", "pattern_found", "line_content", "matched_text"]
+
+    with open(csv_file, "w", encoding="utf-8", newline="") as f:
+        writer = csv.DictWriter(f, fieldnames=fieldnames)
+        writer.writeheader()
+
+        for repo_name, findings in report.items():
+            for finding in findings:
+                row = {
+                    "repository": repo_name,
+                    "file_path": finding.get("file_path", ""),
+                    "line_number": finding.get("line_number", ""),
+                    "category": finding.get("category", ""),
+                    "pattern_found": finding.get("pattern_found", ""),
+                    "line_content": finding.get("line_content", ""),
+                    "matched_text": finding.get("matched_text", "")
+                }
+                writer.writerow(row)
+    print(f"Conversion complete. Report saved to {csv_file}")
+
+def fetch_repos_from_file(file_path):
+    """
+    Fetches repositories from a given file (CSV or TXT).
+    Assumes the file contains one repo URL per line, or for CSV, the URL is in a column named 'url'.
+    """
+    repos = []
+    try:
+        with open(file_path, 'r') as f:
+            if file_path.endswith('.csv'):
+                reader = csv.DictReader(f)
+                for row in reader:
+                    if 'url' in row:
+                        repos.append({'url': row['url'], 'name': row.get('name', row['url'].split('/')[-1])})
+            else:
+                for line in f:
+                    line = line.strip()
+                    if line:
+                        repos.append({'url': line, 'name': line.split('/')[-1]})
+        return repos
+    except FileNotFoundError:
+        print(f"Error: File not found at {file_path}")
+        return []
+    except Exception as e:
+        print(f"Error reading file: {e}")
+        return []
+
+
+
 def main():
+    script_dir = os.path.dirname(os.path.realpath(__file__))
+    default_config_path = os.path.join(script_dir, 'simple_config.json')
+
     parser = argparse.ArgumentParser(description="Enhanced repository content scanner")
-    parser.add_argument("--repo-url", type=str, help="URL of repository to scan")
-    parser.add_argument("--config", type=str, default="scripts/simple_config.json",
-                       help="Path to configuration file")
-    parser.add_argument("--output", type=str, help="Output file name (optional)")
+    parser.add_argument("--file", type=str, required=True, help="Path to a CSV or TXT file with a list of repository URLs.")
+    parser.add_argument("--config", type=str, default=default_config_path,
+                       help=f"Path to configuration file (default: {default_config_path})")
+    parser.add_argument("--output", type=str, default="enhanced_content_report", help="Base name for output files (e.g., 'my_scan' will produce 'my_scan.json' and 'my_scan.csv')")
+    parser.add_argument("--repos-dir", type=str, default="repos/cloned", help="Directory to clone repositories into.")
+    parser.add_argument("--results-dir", type=str, default="enhanced_results", help="Directory to save scan reports.")
+
     args = parser.parse_args()
 
     # Load configuration
     config = load_config(args.config)
 
-    # Create enhanced_results directory
-    results_dir = 'enhanced_results'
-    os.makedirs(results_dir, exist_ok=True)
+    # Create results directory
+    os.makedirs(args.results_dir, exist_ok=True)
 
     # Determine repositories to scan
-    repos_to_scan = []
-    if args.repo_url:
-        repos_to_scan.append({"url": args.repo_url})
-        repo_name = args.repo_url.split('/')[-1].replace('.git', '')
-        report_file = args.output or os.path.join(results_dir, f"enhanced_report_{repo_name}.json")
-    else:
-        # Load from repos file
-        repos_file = 'repos/repos.json'
-        if os.path.exists(repos_file):
-            try:
-                with open(repos_file, 'r') as f:
-                    repos_data = json.load(f)
-                    for repo in repos_data:
-                        if 'url' in repo:
-                            repos_to_scan.append({"url": repo['url']})
-            except json.JSONDecodeError:
-                print(f"Error: Invalid JSON in {repos_file}")
-                return
-        report_file = args.output or os.path.join(results_dir, "enhanced_content_report.json")
+    repos_to_scan = fetch_repos_from_file(args.file)
 
     if not repos_to_scan:
-        print("No repositories to scan. Use --repo-url or create repos/repos.json")
+        print("No repositories to scan. Please provide a valid file with repository URLs.")
         return
 
     # Ensure repos directory exists
-    repos_dir = 'repos/cloned'
-    os.makedirs(repos_dir, exist_ok=True)
+    os.makedirs(args.repos_dir, exist_ok=True)
 
     # Show configuration summary
     total_patterns = sum(len(cat_data.get('patterns', [])) for cat_data in config.get('categories', {}).values())
@@ -225,8 +263,8 @@ def main():
         if not repo_url:
             continue
 
-        repo_name = repo_url.split("/")[-1].replace(".git", "")
-        repo_path = clone_repo(repo_url, repos_dir)
+        repo_name = repo.get('name', repo_url.split('/')[-1].replace('.git', ''))
+        repo_path = clone_repo(repo_url, args.repos_dir)
 
         if repo_path:
             findings = scan_repository(repo_path, config)
@@ -236,11 +274,16 @@ def main():
                 print(f"  No issues found in {repo_name}")
             print()
 
-    # Save report
-    with open(report_file, 'w') as f:
-        json.dump(report, f, indent=2)
+    # Save reports
+    json_output_file = os.path.join(args.results_dir, f"{args.output}.json")
+    csv_output_file = os.path.join(args.results_dir, f"{args.output}.csv")
 
-    print(f"Scan complete. Report saved to {report_file}")
+    with open(json_output_file, 'w') as f:
+        json.dump(report, f, indent=2)
+    print(f"Scan complete. JSON report saved to {json_output_file}")
+
+    convert_json_to_csv(json_output_file, csv_output_file, report)
+
 
     # Summary
     total_findings = sum(len(findings) for findings in report.values())
