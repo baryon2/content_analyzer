@@ -30,21 +30,21 @@ Before running the script, ensure you have the following installed:
     git clone <repository_url>
     cd <repository_name>/content-analysis
     ```
-2.  **Ensure `simple_config.json` is available:** The script expects a configuration file. A default one is located at `scripts/simple_config.json`. You can modify this or create your own.
+2.  **Ensure `simple_config.json` is available:** The script expects a configuration file. A default one is located at `simple_config.json`. You can modify this or create your own.
 
 ## Usage
 
 The script `enhanced_scanner_json.py` is the main entry point for initiating a scan.
 
 ```bash
-python3 scripts/enhanced_scanner_json.py --file <path_to_repo_list> [options]
+python3 enhanced_scanner_json.py --file <path_to_repo_list> [options]
 ```
 
 ### Command-Line Arguments
 
 *   `--file <path_to_repo_list>` (Required): Path to a CSV or TXT file containing the list of repository URLs to scan. See "Input File Format" below for details.
 *   `--config <path_to_config>` (Optional): Path to the JSON configuration file.
-    *   *Default:* `scripts/simple_config.json` (relative to the script's location).
+    *   *Default:* `simple_config.json` (relative to the script's location).
 *   `--output <base_name>` (Optional): Base name for the output report files.
     *   *Default:* `enhanced_content_report` (will produce `enhanced_content_report.json` and `enhanced_content_report.csv`).
 *   `--repos-dir <directory_path>` (Optional): Directory where repositories will be cloned.
@@ -65,7 +65,7 @@ python3 scripts/enhanced_scanner_json.py --file <path_to_repo_list> [options]
 2.  **Run the scanner using default directories:**
 
     ```bash
-    python3 scripts/enhanced_scanner_json.py \
+    python3 enhanced_scanner_json.py \
       --file my_repos.txt \
       --output my_scan_results
     ```
@@ -80,7 +80,7 @@ python3 scripts/enhanced_scanner_json.py --file <path_to_repo_list> [options]
 3.  **Run the scanner using custom directories (optional):**
 
     ```bash
-    python3 scripts/enhanced_scanner_json.py \
+    python3 enhanced_scanner_json.py \
       --file my_repos.txt \
       --output my_scan_results \
       --repos-dir /tmp/my_cloned_repos \
